@@ -33,7 +33,7 @@ void xnn_x32_transposec_ukernel__32x8_rvv(
   const size_t tile_wbytes = tile_width * sizeof(uint32_t);
   const size_t input_reset = tile_wbytes - round_down_po2(block_height, tile_height) * input_stride;
   const size_t input_offset = tile_height * input_stride;
-  const size_t output_reset = tile_width * output_stride - round_down_po2(block_height, 2) * sizeof(uint32_t);
+  const size_t output_reset = tile_width * output_stride - round_down_po2(block_height, tile_height) * sizeof(uint32_t);
 
   const uint32_t* i0 = input;
 
@@ -302,51 +302,6 @@ void xnn_x32_transposec_ukernel__32x8_rvv(
           default:
             XNN_UNREACHABLE;
         }
-      }
-
-      if (bh & 16) {
-        o7 += 16;
-        o6 += 16;
-        o5 += 16;
-        o4 += 16;
-        o3 += 16;
-        o2 += 16;
-        o1 += 16;
-        o0 += 16;
-        i = (uint32_t*) ((uintptr_t) i + input_stride * 16);
-      }
-      if (bh & 8) {
-        o7 += 8;
-        o6 += 8;
-        o5 += 8;
-        o4 += 8;
-        o3 += 8;
-        o2 += 8;
-        o1 += 8;
-        o0 += 8;
-        i = (uint32_t*) ((uintptr_t) i + input_stride * 8);
-      }
-      if (bh & 4) {
-        o7 += 4;
-        o6 += 4;
-        o5 += 4;
-        o4 += 4;
-        o3 += 4;
-        o2 += 4;
-        o1 += 4;
-        o0 += 4;
-        i = (uint32_t*) ((uintptr_t) i + input_stride * 4);
-      }
-      if (bh & 2) {
-        o7 += 2;
-        o6 += 2;
-        o5 += 2;
-        o4 += 2;
-        o3 += 2;
-        o2 += 2;
-        o1 += 2;
-        o0 += 2;
-        i = (uint32_t*) ((uintptr_t) i + input_stride * 2);
       }
     }
 
