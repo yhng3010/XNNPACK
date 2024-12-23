@@ -8,7 +8,6 @@ $assert CHANNEL_TILE in ["m1", "m2", "m4", "m8"]
 $LMUL = int(CHANNEL_TILE[1])
 $assert KERNEL_TILE >= 2
 $assert ACTIVATION in ["LINEAR", "MINMAX"]
-$ABC = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 #include <assert.h>
 #include <riscv_vector.h>
 #include "xnnpack/dwconv.h"
@@ -34,12 +33,11 @@ void xnn_f32_dwconv${SUFFIX}_ukernel_${KERNEL_TILE}p${LMUL}vc__rvv(
     const float vmin = params->scalar.min;
     const float vmax = params->scalar.max;
   do {
-    const float* i[${KERNEL_TILE}];
     $for K in range(KERNEL_TILE):
-      i[${K}] = input[${K}];
-      assert(i[${K}] != NULL);
-      if XNN_UNPREDICTABLE(i[${K}] != zero) {
-        i[${K}] = (const float*) ((uintptr_t) i[${K}] + input_offset);
+      const float* i${K} = input[${K}];
+      assert(i${K} != NULL);
+      if XNN_UNPREDICTABLE(i${K} != zero) {
+        i${K} = (const float*) ((uintptr_t) i${K} + input_offset);
       }
     input = (const float**) ((uintptr_t) input + input_stride);
 
@@ -51,22 +49,21 @@ void xnn_f32_dwconv${SUFFIX}_ukernel_${KERNEL_TILE}p${LMUL}vc__rvv(
     do {
       vl = __riscv_vsetvl_e32m${LMUL}(c);
       // load bias to vAcc
-      vfloat32m${LMUL}_t vAcc = __riscv_vle32_v_f32m${LMUL}_tu(vAcc, w, vl);
+      vfloat32m${LMUL}_t vAcc = __riscv_vle32_v_f32m${LMUL}(w, vl);
       w += vlmax;
 
       vfloat32m${LMUL}_t va;
       vfloat32m${LMUL}_t vb;
-      for (int k=0; k<${KERNEL_TILE}; k++) {
-        va = __riscv_vle32_v_f32m${LMUL}_tu(va, i[k], vl);
-        vb = __riscv_vle32_v_f32m${LMUL}_tu(vb, w, vl);
+      $for K in range(KERNEL_TILE):
+        va = __riscv_vle32_v_f32m${LMUL}(i${K}, vl);
+        vb = __riscv_vle32_v_f32m${LMUL}(w, vl);
         w  += vlmax;
-        i[k] += vlmax;
-        vAcc = __riscv_vfmacc_vv_f32m${LMUL}_tu(vAcc, va, vb, vl);
-      }
+        i${K} += vlmax;
+        vAcc = __riscv_vfmacc_vv_f32m${LMUL}(vAcc, va, vb, vl);
 
       $if ACTIVATION == "MINMAX":
-        vAcc = __riscv_vfmax_vf_f32m${LMUL}_tu(vAcc, vAcc, vmin, vl);
-        vAcc = __riscv_vfmin_vf_f32m${LMUL}_tu(vAcc, vAcc, vmax, vl);
+        vAcc = __riscv_vfmax_vf_f32m${LMUL}(vAcc, vmin, vl);
+        vAcc = __riscv_vfmin_vf_f32m${LMUL}(vAcc, vmax, vl);
       __riscv_vse32_v_f32m${LMUL}(output, vAcc, vl);
       output += vl;
       c -= vl;
